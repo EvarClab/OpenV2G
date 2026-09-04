@@ -231,6 +231,71 @@ void _shiftRight7(uint8_t* buf, int len) {
  * indicate sequence termination. Only seven bits per octet are used to
  * store the integer's value.
  */
+#if 1
+int encodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, size_t len) {
+	int errn = 0;
+	int i;
+	int lenM1 = len - 1;
+	const int MAX_BIGINT_ARRAY = 25;
+	uint8_t lastEncode = 0;
+	uint8_t bytesToShift[MAX_BIGINT_ARRAY]; /* MAXIMUM */
+	size_t bitsToEncode = 1;
+
+	/*
+	* The input is a big-endian byte representation, but len describes the
+	* storage size, not the integer's significant bit length.  EXI's
+	* UnsignedInteger representation must be minimal, so omit leading zero
+	* bits when determining how many 7-bit groups are required.
+	*/
+	if (len > 0) {
+		size_t firstNonZero = 0;
+
+	while (firstNonZero < len && data[firstNonZero] == 0) {
+		firstNonZero++;
+	}
+
+	if (firstNonZero < len) {
+		uint8_t firstByte = data[firstNonZero];
+		size_t significantBits = 0;
+
+		while (firstByte != 0) {
+			significantBits++;
+			firstByte >>= 1;
+		}
+		bitsToEncode = significantBits + (len - firstNonZero - 1) * 8;
+	}
+	}
+
+	if(MAX_BIGINT_ARRAY <= len) {
+		return -1;
+	}
+
+	/* init */
+	for(i=0; i<MAX_BIGINT_ARRAY; i++) {
+		bytesToShift[i] = 0;
+	}
+
+	/* copy bytes first in same order for shifting */
+	for(i=0; i < len; i++) {
+		bytesToShift[i] = data[i];
+	}
+
+	while(bitsToEncode > 7) {
+		lastEncode = bytesToShift[lenM1];
+		lastEncode = lastEncode | 128;
+		errn = encode(stream, lastEncode);
+		_shiftRight7(bytesToShift, len);
+		bitsToEncode -= 7;
+	}
+
+	if (errn == 0) {
+		errn = encode(stream, bytesToShift[lenM1]);
+	}
+
+	return errn;
+}
+
+#else
 int encodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, size_t len) {
 	int errn = 0;
 	int i;
@@ -268,6 +333,7 @@ int encodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, si
 
 	return errn;
 }
+#endif
 
 int encodeInteger(bitstream_t* stream, exi_integer_t* iv) {
 	int errn = 0;
