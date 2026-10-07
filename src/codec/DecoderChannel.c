@@ -288,6 +288,84 @@ void _reverseArray(uint8_t *array, int number) {
  * indicate sequence termination. Only seven bits per octet are used to
  * store the integer's value.
  */
+#if 1
+int decodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, size_t* len) {
+	int errn = 0;
+	uint8_t b = 0;
+	const size_t MAX_BIGINT_GROUPS = 32;
+	const size_t MAX_BIGINT_OCTETS = 28;
+	uint8_t groups[MAX_BIGINT_GROUPS];
+	uint8_t decoded[MAX_BIGINT_OCTETS];
+	size_t nGroups = 0;
+	size_t decodedLen = 1;
+	size_t i;
+	size_t j;
+
+	*len = 0;
+	decoded[0] = 0;
+
+	/*
+	 * EXI stores the least significant 7-bit group first.  Keep the
+	 * groups until the terminating octet is read, then rebuild the value
+	 * from the most significant group to the least significant group.
+	 * This also handles values whose significant bit length is not a
+	 * multiple of 8 without adding a leading zero octet.
+	 */
+	do {
+		errn = decode(stream, &b);
+		if (errn != 0) {
+			return errn;
+		}
+
+		if (nGroups >= MAX_BIGINT_GROUPS) {
+			return -1; /* too large */
+		}
+		groups[nGroups++] = (uint8_t)(b & 127);
+	} while ((b & 128) != 0);
+
+	/* Use little-endian octets while doing the base-128 conversion. */
+	for (i = nGroups; i > 0; i--) {
+		uint16_t carry = groups[i - 1];
+
+		for (j = 0; j < decodedLen; j++) {
+			uint16_t value = (uint16_t)decoded[j] * 128u + carry;
+			decoded[j] = (uint8_t)(value & 0xFFu);
+			carry = (uint16_t)(value >> 8);
+		}
+
+		while (carry != 0) {
+			if (decodedLen >= MAX_BIGINT_OCTETS) {
+				return -1; /* too large */
+			}
+			decoded[decodedLen++] = (uint8_t)(carry & 0xFFu);
+			carry = (uint16_t)(carry >> 8);
+		}
+	}
+
+	/* Remove padding introduced by the fixed-size conversion buffer. */
+	while (decodedLen > 1 && decoded[decodedLen - 1] == 0) {
+		decodedLen--;
+	}
+
+	/* Keep the existing representation of zero as an empty byte array. */
+	if (decodedLen == 1 && decoded[0] == 0) {
+		return 0;
+	}
+
+	if (decodedLen > size) {
+		return EXI_ERROR_OUT_OF_BOUNDS;
+	}
+
+	/* Convert the temporary little-endian value to big-endian output. */
+	for (i = 0; i < decodedLen; i++) {
+		data[i] = decoded[decodedLen - i - 1];
+	}
+	*len = decodedLen;
+
+	return 0;
+}
+
+#else
 int decodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, size_t* len) {
 	int errn = 0;
 	uint8_t b = 0;
@@ -584,7 +662,7 @@ int decodeUnsignedIntegerBig(bitstream_t* stream, size_t size, uint8_t* data, si
 
 	return errn;
 }
-
+#endif
 
 int decodeInteger(bitstream_t* stream, exi_integer_t* iv) {
 	int b;

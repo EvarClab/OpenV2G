@@ -159,7 +159,8 @@ static int decode_iso1PGPDataType(bitstream_t* stream, struct iso1PGPDataType* i
 /* Deviant data decoding (skip functions) */
 
 
-/* Complex type name='urn:iso:15118:2:2013:MsgHeader,MessageHeaderType',  base type name='anyType',  content type='ELEMENT',  isAbstract='false',  hasTypeId='false',  final='0',  block='0',  particle='("urn:iso:15118:2:2013:MsgHeader":SessionID,"urn:iso:15118:2:2013:MsgHeader":Notification{0-1},"http://www.w3.org/2000/09/xmldsig#":Signature{0-1})',  derivedBy='RESTRICTION'.  */
+
+/* Complex type name='urn:iso:15118:2:2013:MsgHeader,MessageHeaderType',  base type name='anyType',  content type='ELEMENT',  isAbstract='false',  hasTypeId='false',  final='0',  block='0',  particle='("urn:iso:15118:2:2013:MsgHeader":SessionID,"urn:iso:15118:2:2013:MsgHeader":Notification{0-1},"http://www.w3.org/2000/09/xmldsig#":Signature{0-1})',  derivedBy='RESTRICTION'.  */
 static int decode_iso1MessageHeaderType(bitstream_t* stream, struct iso1MessageHeaderType* iso1MessageHeaderType) {
 	int grammarID = 0;
 	int done = 0;
